@@ -1,2 +1,2 @@
-vendor/
-gen/
+bin
+vendor

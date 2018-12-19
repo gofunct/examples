@@ -1,10 +1,14 @@
-SOURCES :=	$(shell find . -name "*.proto" -not -path ./vendor/\*)
-TEMPLATES := $(shell find ~/go/src/github.com/gofunct/grpctemplates -name "*.tmpl" -not -path ./vendor/\*)
-TARGETS_GO :=	$(foreach source, $(SOURCES), $(source)_go)
-TARGETS_TMPL :=	$(foreach source, $(SOURCES), $(source)_tmpl)
-import_path := github.com/gofunct/grpcgen/example/cmd
-app_name = example
-service_name =	$(word 2,$(subst /, ,$1))
+.PHONY: build build-alpine clean test help default
+
+BIN_NAME=demoservice
+
+VERSION := $(shell grep "const Version " version/version.go | sed -E 's/.*"(.+)"$$/\1/')
+GIT_COMMIT=$(shell git rev-parse HEAD)
+GIT_DIRTY=$(shell test -n "`git status --porcelain`" && echo "+CHANGES" || true)
+BUILD_DATE=$(shell date '+%Y-%m-%d-%H:%M:%S')
+IMAGE_NAME := "colemanword/demoservice"
+
+default: test
 
 .PHONY: setup
 setup: ## download dependencies and tls certificates
@@ -22,43 +26,41 @@ setup: ## download dependencies and tls certificates
 		github.com/golang/protobuf/{proto,protoc-gen-go} \
 		moul.io/protoc-gen-gotemplate
 
+build: ## Compile the project.
+	@echo "building ${BIN_NAME} ${VERSION}"
+	@echo "GOPATH=${GOPATH}"
+	go build -ldflags "-X github.com/gofunct/demoservice/version.GitCommit=${GIT_COMMIT}${GIT_DIRTY} -X github.com/gofunct/demoservice/version.BuildDate=${BUILD_DATE}" -o bin/${BIN_NAME}
 
-.PHONY: list
-list: list-templates list-protos
+get-deps: ## Runs dep ensure, mostly used for ci.
+	dep ensure
 
-.PHONY: list-templates
-list-templates:
-	@echo "using templates:"
-	@find ~/go/src/github.com/gofunct/grpcgen/templates -name "*.tmpl" -not -path ./vendor/\*
+build-alpine: ## Compile optimized for alpine linux.
+	@echo "building ${BIN_NAME} ${VERSION}"
+	@echo "GOPATH=${GOPATH}"
+	go build -ldflags '-w -linkmode external -extldflags "-static" -X github.com/gofunct/demoservice/version.GitCommit=${GIT_COMMIT}${GIT_DIRTY} -X github.com/gofunct/demoservice/version.BuildDate=${BUILD_DATE}' -o bin/${BIN_NAME}
 
-.PHONY: list-protos
-list-protos:
-	@echo "using protos:"
-	@find . -name "*.proto" -not -path ./vendor/\*
+package: ## Build final docker image with just the go binary inside
+	@echo "building image ${BIN_NAME} ${VERSION} $(GIT_COMMIT)"
+	docker build --build-arg VERSION=${VERSION} --build-arg GIT_COMMIT=$(GIT_COMMIT) -t $(IMAGE_NAME):local .
 
-.PHONY: session
-session: services/session/session.pb.go
+tag: ## Tag image created by package with latest, git commit and version'
+	@echo "Tagging: latest ${VERSION} $(GIT_COMMIT)"
+	docker tag $(IMAGE_NAME):local $(IMAGE_NAME):$(GIT_COMMIT)
+	docker tag $(IMAGE_NAME):local $(IMAGE_NAME):${VERSION}
+	docker tag $(IMAGE_NAME):local $(IMAGE_NAME):latest
 
-services/session/session.pb.go:	services/session/session.proto
-	@protoc --gotemplate_out=destination_dir=services/session,template_dir=$(GOPATH)/src/github.com/gofunct/grpcgen/templates:services/session services/session/session.proto
-	gofmt -w services/session
-	@protoc --gogo_out=plugins=grpc:. services/session/session.proto
+push: tag ## Push tagged images to registry'
+	@echo "Pushing docker image to registry: latest ${VERSION} $(GIT_COMMIT)"
+	docker push $(IMAGE_NAME):$(GIT_COMMIT)
+	docker push $(IMAGE_NAME):${VERSION}
+	docker push $(IMAGE_NAME):latest
 
-.PHONY: user
-user: services/user/user.pb.go
+clean: ## Clean the directory tree.
+	@test ! -e bin/${BIN_NAME} || rm bin/${BIN_NAME}
 
-services/user/user.pb.go:	services/user/user.proto
-	@protoc --gotemplate_out=destination_dir=services/user,template_dir=$(GOPATH)/src/github.com/gofunct/grpcgen/templates:services/user services/user/user.proto
-	gofmt -w services/user
-	@protoc --gogo_out=plugins=grpc:. services/user/user.proto
-
-.PHONY: account
-account: services/account/account.pb.go
-
-services/account/account.pb.go:	services/account/account.proto
-	@protoc --gotemplate_out=destination_dir=services/account,template_dir=$(GOPATH)/src/github.com/gofunct/grpcgen/templates:services/account services/account/account.proto
-	gofmt -w services/account
-	@protoc --gogo_out=plugins=grpc:. services/account/account.proto
+test: ## Run tests on a compiled project.
+	go test ./...
 
 help: ## help
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST) | sort
+
