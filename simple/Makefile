@@ -1,14 +1,19 @@
 .PHONY: build build-alpine clean test help default
 
-BIN_NAME=demoservice
+BIN_NAME=simple
 
 VERSION := $(shell grep "const Version " version/version.go | sed -E 's/.*"(.+)"$$/\1/')
 GIT_COMMIT=$(shell git rev-parse HEAD)
 GIT_DIRTY=$(shell test -n "`git status --porcelain`" && echo "+CHANGES" || true)
 BUILD_DATE=$(shell date '+%Y-%m-%d-%H:%M:%S')
-IMAGE_NAME := "colemanword/demoservice"
+IMAGE_NAME := "colemanword/simple"
 
 default: test
+
+regen:
+	rm -rf *
+	rm .*
+	cookiecutter https://github.com/gofunct/cookiecutter-grpcgo.git
 
 .PHONY: setup
 setup: ## download dependencies and tls certificates
@@ -29,7 +34,7 @@ setup: ## download dependencies and tls certificates
 build: ## Compile the project.
 	@echo "building ${BIN_NAME} ${VERSION}"
 	@echo "GOPATH=${GOPATH}"
-	go build -ldflags "-X github.com/gofunct/demoservice/version.GitCommit=${GIT_COMMIT}${GIT_DIRTY} -X github.com/gofunct/demoservice/version.BuildDate=${BUILD_DATE}" -o bin/${BIN_NAME}
+	go build -ldflags "-X github.com/gofunct/simple/version.GitCommit=${GIT_COMMIT}${GIT_DIRTY} -X github.com/gofunct/simple/version.BuildDate=${BUILD_DATE}" -o bin/${BIN_NAME}
 
 get-deps: ## Runs dep ensure, mostly used for ci.
 	dep ensure
@@ -37,7 +42,7 @@ get-deps: ## Runs dep ensure, mostly used for ci.
 build-alpine: ## Compile optimized for alpine linux.
 	@echo "building ${BIN_NAME} ${VERSION}"
 	@echo "GOPATH=${GOPATH}"
-	go build -ldflags '-w -linkmode external -extldflags "-static" -X github.com/gofunct/demoservice/version.GitCommit=${GIT_COMMIT}${GIT_DIRTY} -X github.com/gofunct/demoservice/version.BuildDate=${BUILD_DATE}' -o bin/${BIN_NAME}
+	go build -ldflags '-w -linkmode external -extldflags "-static" -X github.com/gofunct/simple/version.GitCommit=${GIT_COMMIT}${GIT_DIRTY} -X github.com/gofunct/simple/version.BuildDate=${BUILD_DATE}' -o bin/${BIN_NAME}
 
 package: ## Build final docker image with just the go binary inside
 	@echo "building image ${BIN_NAME} ${VERSION} $(GIT_COMMIT)"

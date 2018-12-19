@@ -2,7 +2,7 @@ package cmd
 
 import (
         "fmt"
-        "github.com/gofunct/spawnd/cookiecutter-grpcgo/demoservice/config"
+        "github.com/gofunct/spawnd/cookiecutter-grpcgo/simple/config"
         "os"
 
         "github.com/spf13/cobra"
@@ -13,13 +13,13 @@ var (
 )
 
 func init() {
-	cookie = config.NewCookieCutterCookieCutter("DEMOSERVICE")
+	cookie = config.NewCookieCutterCookieCutter("SIMPLE")
 }
 
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-        Use:   "demoservice",
+        Use:   "simple",
         Short: "A brief description of your application",
 }
 

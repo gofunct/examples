@@ -1,6 +1,6 @@
-# demoservice
+# simple
 
-a demoservice built with spawnd and cookiecutter-grpcgo
+a simple project made with cookiecutter-grpcgo
 
 ## Getting started
 
@@ -10,7 +10,7 @@ Running it then should be as simple as:
 
 ```console
 $ make
-$ ./bin/demoservice
+$ ./bin/simple
 ```
 
 ### Testing

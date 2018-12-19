@@ -1,4 +1,4 @@
-module github.com/gofunct/demoservice
+module github.com/gofunct/simple
 
 require (
 	github.com/Sirupsen/logrus v1.0.6

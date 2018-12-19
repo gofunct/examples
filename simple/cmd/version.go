@@ -3,14 +3,14 @@ package cmd
 import (
         "github.com/spf13/cobra"
         "fmt"
-        "github.com/gofunct/demoservice/version"
+        "github.com/gofunct/simple/version"
 )
 
 // versionCmd represents the version command
 var versionCmd = &cobra.Command{
         Use:   "version",
-        Short: "Print the version number of demoservice",
-        Long:  `All software has versions. This is demoservice`,
+        Short: "Print the version number of simple",
+        Long:  `All software has versions. This is simple`,
         Run: func(cmd *cobra.Command, args []string) {
                 fmt.Println("Build Date:", version.BuildDate)
                 fmt.Println("Git Commit:", version.GitCommit)
